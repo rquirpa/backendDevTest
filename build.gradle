@@ -1,0 +1,83 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+plugins {
+    id 'org.springframework.boot' version '2.5.9'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'org.openapi.generator' version '5.3.0'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', "2020.0.5")
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    implementation group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
+    implementation group: 'io.springfox', name: 'springfox-boot-starter', version: '3.0.0'
+    implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
+
+    implementation 'org.mapstruct:mapstruct:1.4.2.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.4.2.Final'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "$rootDir/similarProducts.yaml"
+    outputDir = "$buildDir/generated"
+    apiPackage = "com.example.demo.infrastructure.http.api"
+    modelPackage = "com.example.demo.infrastructure.http.model"
+    configOptions = [
+            interfaceOnly       : "true",
+            skipDefaultInterface: "true"
+    ]
+}
+
+task externalOpenApiGenerate(type: GenerateTask) {
+    generatorName = "spring"
+    inputSpec = "$rootDir/existingApis.yaml".toString()
+    outputDir = "$buildDir/generated"
+    apiPackage = "com.example.demo.infrastructure.http.external.api"
+    modelPackage = "com.example.demo.infrastructure.http.external.model"
+    configOptions = [
+            interfaceOnly       : "true",
+            skipDefaultInterface: "true"
+    ]
+}
+
+compileJava {
+    dependsOn 'openApiGenerate', 'externalOpenApiGenerate'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+sourceSets.main.java.srcDirs 'build/generated/src/main/java'
